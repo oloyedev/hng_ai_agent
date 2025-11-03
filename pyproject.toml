@@ -1,0 +1,16 @@
+[project]
+name = "contract-clarity-agent"
+version = "0.1.0"
+description = "An AI agent that analyzes legal contracts using Groq and A2A protocol"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi[all]>=0.115.12",
+    "pydantic>=2.8.2",
+    "httpx>=0.28.1",
+    "python-dotenv>=1.0.1",
+    "groq>=0.9.0"
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
