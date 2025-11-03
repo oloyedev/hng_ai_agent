@@ -14,12 +14,12 @@ async def process_contract_messages(
     task_id: Optional[str] = None,
     config: Optional[MessageConfiguration] = None
 ) -> TaskResult:
-    """Process messages and return classified contract analysis."""
+    """Process messages and return structured contract analysis."""
 
     context_id = context_id or str(uuid4())
     task_id = task_id or str(uuid4())
 
-    # Extract the user's contract text
+    # Extract user’s text
     user_message = messages[-1]
     contract_text = ""
     for part in user_message.parts:
@@ -30,10 +30,10 @@ async def process_contract_messages(
     if not contract_text:
         raise ValueError("No contract text provided")
 
-    # Get structured analysis from Groq
+    # Analyze via Groq
     raw_result = await analyze_contract(contract_text)
 
-    # Parse JSON result if valid
+    # Parse structured JSON
     try:
         parsed = json.loads(raw_result)
         contract_type = parsed.get("contract_type", "Unknown")
@@ -42,14 +42,14 @@ async def process_contract_messages(
         ambiguous_terms = parsed.get("ambiguous_terms", [])
         risk_clauses = parsed.get("risk_clauses", [])
     except Exception:
-        parsed = None
+        # fallback if model returns plain text
         contract_type = "Unknown"
         simplified_summary = raw_result
         recommendations = ""
         ambiguous_terms = []
         risk_clauses = []
 
-    # Human-readable formatted summary
+    # Build human-readable report
     readable_report = (
         f"**Contract Type:** {contract_type}\n\n"
         f"**Simplified Summary:**\n{simplified_summary}\n\n"
@@ -58,7 +58,7 @@ async def process_contract_messages(
         f"**Recommendations:**\n{recommendations}"
     )
 
-    # Build response for Telex (A2A)
+    # Build A2A-compatible response
     response_message = A2AMessage(
         role="agent",
         parts=[MessagePart(kind="text", text=readable_report)],

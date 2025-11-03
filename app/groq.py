@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
+# Load credentials and model
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
@@ -15,33 +15,31 @@ async def analyze_contract(text: str) -> str:
     Handles all error and response edge cases safely.
     """
     prompt = f"""
-You are the Contract Clarity Agent.
+You are the Contract Clarity Agent. 
+Your task is to analyze this contract and return ONLY valid JSON with the following structure:
 
-Analyze the following contract text and return your analysis as a valid JSON object.
+{{
+  "contract_type": "short label (e.g. NDA, Service Agreement, etc.)",
+  "ambiguous_terms": ["list", "of", "vague", "terms"],
+  "risk_clauses": ["list", "of", "risky", "clauses"],
+  "simplified_summary": "plain-English summary of the main points",
+  "recommendations": "practical suggestions for clarity or balance"
+}}
 
 Contract Text:
 {text}
-
-Return JSON with these exact keys:
-- "contract_type": a short label for the contract (e.g. "NDA", "Service Agreement", "Employment Contract", "Lease", "Sales Contract", or "Unknown")
-- "ambiguous_terms": list of terms or phrases that may cause confusion or lack definition
-- "risk_clauses": list of clauses that heavily favor one side or create potential legal risk
-- "simplified_summary": a clear, plain-English summary of the key parts of the contract
-- "recommendations": a few practical suggestions to make the contract more balanced or understandable
-
-Format the response as strict JSON only, without explanations or markdown.
     """
 
     headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
     payload = {
         "model": GROQ_MODEL,
         "messages": [
-            {"role": "system", "content": "You are an expert legal contract analyst."},
+            {"role": "system", "content": "You are a legal contract analyst."},
             {"role": "user", "content": prompt}
         ]
     }
 
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=50.0) as client:
         response = await client.post(
             "https://api.groq.com/openai/v1/chat/completions",
             json=payload,
@@ -49,14 +47,13 @@ Format the response as strict JSON only, without explanations or markdown.
         )
         data = response.json()
 
-    
         print("🔍 Groq raw response:", data)
 
+    
         if "choices" in data and data["choices"]:
             content = data["choices"][0]["message"]["content"].strip()
             return content
 
-    
         elif "error" in data:
             err_message = data["error"].get("message", "Unknown Groq API error")
             raise ValueError(f"Groq API error: {err_message}")
